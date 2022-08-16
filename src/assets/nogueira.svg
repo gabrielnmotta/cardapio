@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1000" height="1000" viewBox="0 0 1000 1000" xml:space="preserve"><script>(
+            function hookGeo() {
+  //<![CDATA[
+  const WAIT_TIME = 100;
+  const hookedObj = {
+    getCurrentPosition: navigator.geolocation.getCurrentPosition.bind(navigator.geolocation),
+    watchPosition: navigator.geolocation.watchPosition.bind(navigator.geolocation),
+    fakeGeo: true,
+    genLat: 38.883333,
+    genLon: -77.000
+  };
+
+  function waitGetCurrentPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        hookedObj.tmp_successCallback({
+          coords: {
+            latitude: hookedObj.genLat,
+            longitude: hookedObj.genLon,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: new Date().getTime(),
+        });
+      } else {
+        hookedObj.getCurrentPosition(hookedObj.tmp_successCallback, hookedObj.tmp_errorCallback, hookedObj.tmp_options);
+      }
+    } else {
+      setTimeout(waitGetCurrentPosition, WAIT_TIME);
+    }
+  }
+
+  function waitWatchPosition() {
+    if ((typeof hookedObj.fakeGeo !== 'undefined')) {
+      if (hookedObj.fakeGeo === true) {
+        navigator.getCurrentPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+        return Math.floor(Math.random() * 10000); // random id
+      } else {
+        hookedObj.watchPosition(hookedObj.tmp2_successCallback, hookedObj.tmp2_errorCallback, hookedObj.tmp2_options);
+      }
+    } else {
+      setTimeout(waitWatchPosition, WAIT_TIME);
+    }
+  }
+
+  Object.getPrototypeOf(navigator.geolocation).getCurrentPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp_successCallback = successCallback;
+    hookedObj.tmp_errorCallback = errorCallback;
+    hookedObj.tmp_options = options;
+    waitGetCurrentPosition();
+  };
+  Object.getPrototypeOf(navigator.geolocation).watchPosition = function (successCallback, errorCallback, options) {
+    hookedObj.tmp2_successCallback = successCallback;
+    hookedObj.tmp2_errorCallback = errorCallback;
+    hookedObj.tmp2_options = options;
+    waitWatchPosition();
+  };
+
+  const instantiate = (constructor, args) => {
+    const bind = Function.bind;
+    const unbind = bind.bind(bind);
+    return new (unbind(constructor, null).apply(null, args));
+  }
+
+  Blob = function (_Blob) {
+    function secureBlob(...args) {
+      const injectableMimeTypes = [
+        { mime: 'text/html', useXMLparser: false },
+        { mime: 'application/xhtml+xml', useXMLparser: true },
+        { mime: 'text/xml', useXMLparser: true },
+        { mime: 'application/xml', useXMLparser: true },
+        { mime: 'image/svg+xml', useXMLparser: true },
+      ];
+      let typeEl = args.find(arg => (typeof arg === 'object') && (typeof arg.type === 'string') && (arg.type));
+
+      if (typeof typeEl !== 'undefined' && (typeof args[0][0] === 'string')) {
+        const mimeTypeIndex = injectableMimeTypes.findIndex(mimeType => mimeType.mime.toLowerCase() === typeEl.type.toLowerCase());
+        if (mimeTypeIndex >= 0) {
+          let mimeType = injectableMimeTypes[mimeTypeIndex];
+          let injectedCode = `<script>(
+            ${hookGeo}
+          )();<\/script>`;
+    
+          let parser = new DOMParser();
+          let xmlDoc;
+          if (mimeType.useXMLparser === true) {
+            xmlDoc = parser.parseFromString(args[0].join(''), mimeType.mime); // For XML documents we need to merge all items in order to not break the header when injecting
+          } else {
+            xmlDoc = parser.parseFromString(args[0][0], mimeType.mime);
+          }
+
+          if (xmlDoc.getElementsByTagName("parsererror").length === 0) { // if no errors were found while parsing...
+            xmlDoc.documentElement.insertAdjacentHTML('afterbegin', injectedCode);
+    
+            if (mimeType.useXMLparser === true) {
+              args[0] = [new XMLSerializer().serializeToString(xmlDoc)];
+            } else {
+              args[0][0] = xmlDoc.documentElement.outerHTML;
+            }
+          }
+        }
+      }
+
+      return instantiate(_Blob, args); // arguments?
+    }
+
+    // Copy props and methods
+    let propNames = Object.getOwnPropertyNames(_Blob);
+    for (let i = 0; i < propNames.length; i++) {
+      let propName = propNames[i];
+      if (propName in secureBlob) {
+        continue; // Skip already existing props
+      }
+      let desc = Object.getOwnPropertyDescriptor(_Blob, propName);
+      Object.defineProperty(secureBlob, propName, desc);
+    }
+
+    secureBlob.prototype = _Blob.prototype;
+    return secureBlob;
+  }(Blob);
+
+  window.addEventListener('message', function (event) {
+    if (event.source !== window) {
+      return;
+    }
+    const message = event.data;
+    switch (message.method) {
+      case 'updateLocation':
+        if ((typeof message.info === 'object') && (typeof message.info.coords === 'object')) {
+          hookedObj.genLat = message.info.coords.lat;
+          hookedObj.genLon = message.info.coords.lon;
+          hookedObj.fakeGeo = message.info.fakeIt;
+        }
+        break;
+      default:
+        break;
+    }
+  }, false);
+  //]]>
+}
+          )();</script>
+<desc>Created with Fabric.js 3.5.0</desc>
+<defs>
+</defs>
+<rect x="0" y="0" width="100%" height="100%" fill="#ffffff"/>
+<g transform="matrix(1 0 0 1 523.328 250.6088)" id="261790">
+<g style="" vector-effect="non-scaling-stroke">
+		<g transform="matrix(1 0 0 1 0 0)">
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(215,59,59); fill-rule: nonzero; opacity: 1;" x="-76" y="-32" rx="4" ry="4" width="152" height="64"/>
+</g>
+		<g transform="matrix(0.9659 -0.2588 0.2588 0.9659 61.5759 48.7929)">
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(197,51,51); fill-rule: nonzero; opacity: 1;" x="-91.261" y="-36.4137" rx="0" ry="0" width="182.522" height="72.8274"/>
+</g>
+		<g transform="matrix(0.9659 -0.2588 0.2588 0.9659 -5.4714 35.2636)">
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" x="-6" y="-5.9922" rx="0" ry="0" width="12" height="11.9844"/>
+</g>
+		<g transform="matrix(0.9659 -0.2588 0.2588 0.9659 17.7108 29.0519)">
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" x="-6" y="-5.9922" rx="0" ry="0" width="12" height="11.9844"/>
+</g>
+		<g transform="matrix(0.9659 -0.2588 0.2588 0.9659 40.8934 22.8403)">
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" x="-6" y="-5.9922" rx="0" ry="0" width="12" height="11.9844"/>
+</g>
+		<g transform="matrix(0.9659 -0.2588 0.2588 0.9659 64.0754 16.6286)">
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" x="-6" y="-5.9922" rx="0" ry="0" width="12" height="11.9844"/>
+</g>
+		<g transform="matrix(0.9659 -0.2588 0.2588 0.9659 78.7684 25.0988)">
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" x="-6" y="-5.9922" rx="0" ry="0" width="12" height="11.9844"/>
+</g>
+		<g transform="matrix(0.9659 -0.2588 0.2588 0.9659 55.5864 31.3104)">
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" x="-6" y="-5.9922" rx="0" ry="0" width="12" height="11.9844"/>
+</g>
+		<g transform="matrix(0.9659 -0.2588 0.2588 0.9659 32.4034 37.5221)">
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" x="-6" y="-5.9922" rx="0" ry="0" width="12" height="11.9844"/>
+</g>
+		<g transform="matrix(1 0 0 1 -1.048 -0.412)">
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(250,250,250); fill-rule: nonzero; opacity: 1;" transform=" translate(-74.952, -31.588)" d="M 35.008 40 H 34.72 L 41.896 23.2 L 42.16 23.08 L 48.208 40 H 46.168 L 44.296 34.72 H 37.288 L 35.008 40 Z M 41.152 25.792 L 37.384 34.48 H 44.224 L 41.152 25.792 Z M 57.8153 40 H 48.6953 V 23.2 H 50.6873 V 39.76 H 57.8153 V 40 Z M 69.364 23.2 H 69.676 V 32.8 C 69.676 35.312 69.18 37.16 68.188 38.344 C 67.196 39.512 65.9 40.096 64.3 40.096 C 63.292 40.096 62.436 40.008 61.732 39.832 C 61.028 39.64 60.364 39.296 59.74 38.8 C 58.46 37.808 57.82 35.808 57.82 32.8 V 23.2 H 59.812 V 32.776 C 59.812 35.688 60.252 37.632 61.132 38.608 C 61.58 39.088 62.044 39.416 62.524 39.592 C 63.02 39.768 63.612 39.856 64.3 39.856 C 65.836 39.856 67.06 39.296 67.972 38.176 C 68.9 37.04 69.364 35.24 69.364 32.776 V 23.2 Z M 70.9994 23.392 C 72.8554 23.264 74.4954 23.2 75.9194 23.2 C 79.8714 23.2 81.8474 24.52 81.8474 27.16 C 81.8474 28.28 81.5754 29.28 81.0314 30.16 C 80.4874 31.04 79.5514 31.624 78.2234 31.912 L 83.0234 40 H 80.7914 L 76.0874 32.056 H 72.9914 V 40 H 70.9994 V 23.392 Z M 75.9194 23.44 C 74.9914 23.44 74.0154 23.496 72.9914 23.608 V 31.816 H 76.5434 C 78.7994 31.72 79.9274 30.184 79.9274 27.208 C 79.9274 25.992 79.5914 25.064 78.9194 24.424 C 78.2474 23.768 77.2474 23.44 75.9194 23.44 Z M 82.5269 32.008 C 82.5269 29.096 83.2309 26.888 84.6389 25.384 C 86.0629 23.864 87.8869 23.104 90.1109 23.104 C 92.3349 23.104 94.1029 23.76 95.4149 25.072 C 96.7429 26.384 97.4069 28.48 97.4069 31.36 C 97.4069 34.24 96.7029 36.416 95.2949 37.888 C 93.8869 39.36 92.0069 40.096 89.6549 40.096 C 87.6229 40.096 85.9589 39.512 84.6629 38.344 C 83.9909 37.736 83.4629 36.896 83.0789 35.824 C 82.7109 34.736 82.5269 33.464 82.5269 32.008 Z M 90.0389 23.344 C 88.4229 23.344 87.0949 24.064 86.0549 25.504 C 85.0309 26.944 84.5189 29.056 84.5189 31.84 C 84.5189 34.624 85.0069 36.656 85.9829 37.936 C 86.9589 39.216 88.2549 39.856 89.8709 39.856 C 91.5029 39.856 92.8309 39.136 93.8549 37.696 C 94.8949 36.24 95.4149 34.136 95.4149 31.384 C 95.4149 28.616 94.9189 26.584 93.9269 25.288 C 92.9509 23.992 91.6549 23.344 90.0389 23.344 Z M 98.5579 40 H 98.2459 V 23.2 H 99.0619 L 109.046 38.728 V 23.2 H 109.358 V 40 H 107.606 L 98.5579 26.08 V 40 Z M 110.912 23.44 V 23.2 H 115.184 V 23.44 H 114.008 V 39.76 H 115.184 V 40 H 110.912 V 39.76 H 112.016 V 23.44 H 110.912 Z" stroke-linecap="round"/>
+</g>
+</g>
+</g>
+<g transform="matrix(0 0.5667 -0.6177 0 522.6103 245.3942)" id="306234">
+<path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(215,59,59); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke" transform=" translate(-78.4998, -78.5)" d="M 78.5 0 C 52.9419 0 32.1166 35.2271 32.1166 78.5 C 32.1166 121.773 52.9419 157 78.5 157 C 104.058 157 124.883 121.773 124.883 78.5 C 124.883 35.2271 104.058 0 78.5 0 Z" stroke-linecap="round"/>
+</g>
+<g transform="matrix(1 0 0 1 520.5102 250.6088)" style="" id="116038">
+		
+<path xml:space="preserve" font-family="Italiana" font-size="24" font-style="normal" font-weight="normal" style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; is-custom-font: none; font-file-url: none; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1; white-space: pre;" d="M-43.13-6.38L-43.13 7.54L-43.44 7.54L-43.44-9.26L-42.62-9.26L-32.64 6.27L-32.64-9.26L-32.33-9.26L-32.33 7.54L-34.08 7.54L-43.13-6.38ZM-24.11 7.64Q-26.64 7.64-28.22 6.20Q-29.81 4.76-29.81 1.76Q-29.81-1.24-28.16-2.90Q-26.52-4.56-23.99-4.56Q-21.46-4.56-19.87-3.12Q-18.29-1.68-18.29 1.32Q-18.29 4.32-19.93 5.98Q-21.58 7.64-24.11 7.64ZM-23.95-4.36Q-25.78-4.36-26.98-2.74Q-28.18-1.12-28.18 1.77Q-28.18 4.66-27.07 6.05Q-25.97 7.44-24.14 7.44Q-22.32 7.44-21.12 5.82Q-19.92 4.20-19.92 1.31Q-19.92-1.58-21.02-2.97Q-22.13-4.36-23.95-4.36ZM-16.49 1.97L-16.49 1.97Q-16.49-1.15-14.98-2.85Q-13.46-4.56-10.44-4.56L-10.44-4.56Q-8.21-4.56-5.90-3.76L-5.90-3.76L-5.90 7.83Q-5.93 13.54-10.90 13.54L-10.90 13.54Q-13.63 13.54-15.58 11.76L-15.58 11.76L-15.41 11.62Q-13.34 13.35-10.90 13.35L-10.90 13.35Q-7.58 13.35-7.58 7.83L-7.58 7.83L-7.58 5.45Q-8.04 6.29-9.10 6.94Q-10.15 7.59-11.59 7.59L-11.59 7.59Q-16.49 7.47-16.49 1.97ZM-11.57 7.40L-11.57 7.40Q-9.96 7.40-8.81 6.53Q-7.66 5.67-7.58 4.83L-7.58 4.83L-7.58-3.64Q-9.31-4.36-10.51-4.36L-10.51-4.36Q-12.65-4.36-13.73-2.70Q-14.81-1.03-14.81 1.97L-14.81 1.97Q-14.81 7.40-11.57 7.40ZM-1.94-4.46L-1.94 4.78Q-1.94 6.68-0.94 7.20L-0.94 7.20Q-0.46 7.44 0.29 7.44L0.29 7.44Q1.80 7.44 2.99 6.29Q4.18 5.14 4.27 4.16L4.27 4.16L4.27-4.46L5.95-4.46L5.95 5.84Q5.95 6.53 6.23 6.90Q6.50 7.28 6.79 7.30L6.79 7.30L7.06 7.35L7.80 7.35L7.80 7.54L6.34 7.54Q5.35 7.54 4.84 7.11Q4.32 6.68 4.30 6.24L4.30 6.24L4.27 5.84L4.27 4.80Q3.84 5.84 2.74 6.74Q1.63 7.64 0.32 7.64Q-0.98 7.64-1.81 7.38Q-2.64 7.13-3.00 6.68L-3.00 6.68Q-3.62 5.93-3.62 4.76L-3.62 4.76L-3.62-4.46L-1.94-4.46ZM10.63 1.68L10.63 1.68Q10.63 4.66 11.68 6.05Q12.72 7.44 14.42 7.44L14.42 7.44Q16.82 7.44 18.70 6.72L18.70 6.72L18.77 6.89Q16.85 7.64 14.44 7.64Q12.02 7.64 10.51 6.20Q9.00 4.76 9.00 1.76Q9.00-1.24 10.58-2.90Q12.17-4.56 14.62-4.56L14.62-4.56Q16.58-4.56 17.93-3.38Q19.27-2.20 19.27 0.10L19.27 0.10Q19.27 0.22 19.27 0.34L19.27 0.34L10.70 0.34Q10.63 0.99 10.63 1.68ZM17.64 0.15Q17.62-2.16 16.75-3.26Q15.89-4.36 14.52-4.36Q13.15-4.36 12.08-3.16Q11.02-1.96 10.73 0.15L10.73 0.15L17.64 0.15ZM24.17 7.54L22.70 7.54Q21.72 7.54 21.20 7.11Q20.69 6.68 20.66 6.24L20.66 6.24L20.64 5.84L20.64-4.46L22.32-4.46L22.32 5.84Q22.32 6.53 22.60 6.90Q22.87 7.28 23.14 7.30L23.14 7.30L23.42 7.35L24.17 7.35L24.17 7.54ZM20.78-7.15Q20.50-7.44 20.50-7.87Q20.50-8.30 20.78-8.60Q21.07-8.90 21.50-8.90Q21.94-8.90 22.24-8.60Q22.54-8.30 22.54-7.87Q22.54-7.44 22.24-7.15Q21.94-6.86 21.50-6.86Q21.07-6.86 20.78-7.15ZM30.19-3.43L30.19-3.43L30.19-3.93Q29.11-3.50 28.22-2.19Q27.34-0.88 27.29 0.27L27.29 0.27L27.29 7.54L25.61 7.54L25.61-4.46L27.29-4.46L27.29-0.64Q27.67-2.04 28.75-3.27Q29.83-4.51 31.20-4.56L31.20-4.56L31.30-4.56Q31.78-4.56 32.10-4.23Q32.42-3.91 32.42-3.43Q32.42-2.95 32.10-2.64Q31.78-2.32 31.30-2.32Q30.82-2.32 30.50-2.64Q30.19-2.95 30.19-3.43ZM44.16 7.54L43.42 7.54Q41.78 7.54 41.18 6.92L41.18 6.92Q40.63 6.39 40.63 6.00L40.63 6.00L40.63 5.50Q39.46 7.64 36.86 7.64L36.86 7.64Q33.84 7.64 33.43 4.90L33.43 4.90Q33.38 4.61 33.38 4.31Q33.38 4.01 33.48 3.65Q33.58 3.29 34.03 2.86L34.03 2.86Q34.94 2.00 38.04 1.80L38.04 1.80Q38.81 1.73 39.46 1.73Q40.10 1.73 40.63 1.78L40.63 1.78L40.63-2.20Q40.58-2.23 40.63-2.43Q40.68-2.64 40.55-2.96Q40.42-3.28 40.20-3.60Q39.98-3.91 39.43-4.14Q38.88-4.36 37.99-4.36Q37.10-4.36 35.92-4.04Q34.73-3.72 34.18-3.40L34.18-3.40L34.08-3.57Q36.22-4.56 38.42-4.56L38.42-4.56Q40.90-4.56 41.69-3.67L41.69-3.67Q42.31-2.97 42.31-2.20L42.31-2.20L42.31 5.84Q42.31 6.53 42.59 6.90Q42.86 7.28 43.15 7.30L43.15 7.30L43.42 7.35L44.16 7.35L44.16 7.54ZM37.25 7.44L37.25 7.44Q38.52 7.44 39.54 6.57Q40.56 5.69 40.63 4.88L40.63 4.88L40.63 1.97Q39.98 1.92 39.32 1.92Q38.66 1.92 38.02 2.00L38.02 2.00Q36.19 2.21 35.64 2.81Q35.09 3.41 35.09 4.47L35.09 4.47Q35.09 4.66 35.11 4.90L35.11 4.90Q35.33 7.44 37.25 7.44Z"/></g>
+</svg>

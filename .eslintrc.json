@@ -21,7 +21,7 @@
         "@typescript-eslint"
     ],
     "rules": {
-        "react/react-in-jsx-scope": "off",
+        "react/react-in-jsx-scope": "off", //não é mais obrigado 
         "indent": [
             "error",
             2
